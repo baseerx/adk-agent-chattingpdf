@@ -1,0 +1,1 @@
+This project is handling adk agent which is sending request to tool/function then that fetches information from external fastapi end point.
