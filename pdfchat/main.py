@@ -7,7 +7,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
-
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv  # To load environment variables
 
 # --- Load environment variables from .env ---
@@ -16,6 +16,19 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 # --- Initialize FastAPI app ---
 app = FastAPI()
+
+# Add this CORS middleware configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",  # React dev server
+        "http://localhost:5173",  # Vite dev server
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # --- Global instances ---
 vectorstore = None               # FAISS index
