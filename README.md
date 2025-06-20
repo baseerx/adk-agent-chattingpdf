@@ -7,3 +7,7 @@ http://127.0.0.1:9001/run
 
 for handling api_server cors
 adk api_server --allow_origins=http://localhost:5173 --host=0.0.0.0
+
+
+
+-> manager agent calls sub agents and then we use tools inside those sub agents

@@ -1,7 +1,7 @@
 from google.adk.agents import Agent
 import requests
 
-def thesischat(query: str):
+def chatpdf(query: str):
     """
     This is pdf chat function that initializes the root agent, It fetches the PDF text and respond to queries as per the user request.
     It uses the Google Generative AI model to answer questions based on the PDF content.
@@ -39,5 +39,5 @@ root_agent = Agent(
     **ALWAYS use the 'thesischat' tool to answer any user queries related to thesis, research papers, or academic documents.**
     You will provide accurate and relevant answers by calling the 'thesischat' tool with the user's query.
     If you do not have enough information even after using the tool, you will respond with "I don't know".""",
-    tools=[thesischat],  # Register the pdfchat function as a tool
+    tools=[chatpdf],  # Register the pdfchat function as a tool
 )
