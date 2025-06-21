@@ -10,21 +10,24 @@ adk api_server --allow_origins=http://localhost:5173 --host=0.0.0.0
 
 
 Locally Serving LLM models via Ollama and then use them offline
-from google.adk.agents import Agent
+from google.adk.agents import Agent, LlmAgent
 from google.adk.models.lite_llm import LiteLlm
 
-deepseek = LiteLlm(
-    model="ollama/deepseek-r1:1.5b",  # <== MODIFIED: Added "ollama/" prefix
+llama_model = LiteLlm(
+    model="ollama/llama3.2:1b",  # <== MODIFIED: Added "ollama/" prefix
     model_provider="ollama",
-    name="deepseek"
+    name="llama3.2"
 )
 
-root_agent = Agent(
-    model=deepseek,
-    name="root_agent",
-    description="A helpful assistant for user questions.",
-    instruction="Answer user questions to the best of your knowledge.",
+root_agent = LlmAgent(
+    model=llama_model,
+    name="llama",
+    description="",
+    instruction=("Answer questions directly and concisely. Provide a brief explanation when helpful, "
+                 "but avoid greetings, introductions, or extra commentary. Do not say you're an AI. "
+                 "Focus on factual and helpful answers only."),
     tools=[],
 )
 
 # ... (rest of your code)
+
