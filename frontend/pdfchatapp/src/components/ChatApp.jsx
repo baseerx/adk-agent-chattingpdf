@@ -8,12 +8,13 @@ const ChatWidget = () => {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const chatRef = useRef(null);
+  const [showPopover, setShowPopover] = useState(true);
 
-  // Generate dynamic user/session IDs
   const userId = useRef(`u_${Math.random().toString(36).slice(2, 10)}`);
   const sessionId = useRef(`s_${Math.random().toString(36).slice(2, 10)}`);
 
-  const baseURL = "http://172.16.17.251:8000";
+  const baseURL =
+    import.meta.env.VITE_ADK_SERVER_URL || "http://172.16.17.98:8000";
   const sessionURL = `${baseURL}/apps/pdfchat/users/${userId.current}/sessions/${sessionId.current}`;
   const runURL = `${baseURL}/run`;
 
@@ -23,17 +24,15 @@ const ChatWidget = () => {
         state: { started_at: new Date().toISOString() },
       });
       setSessionStarted(true);
-      console.log("Session started:", res.status);
     } catch (error) {
       console.error("Failed to start session", error);
     }
   };
 
   const toggleChat = async () => {
-    if (!isOpen && !sessionStarted) {
-      await startSession();
-    }
+    if (!isOpen && !sessionStarted) await startSession();
     setIsOpen(!isOpen);
+    setShowPopover(false); // hide popover after first open
   };
 
   const sendMessage = async () => {
@@ -51,49 +50,25 @@ const ChatWidget = () => {
         sessionId: sessionId.current,
         newMessage: {
           role: "user",
-          parts: [
-            {
-              text: query,
-            },
-          ],
+          parts: [{ text: query }],
         },
       };
 
       const res = await axios.post(runURL, payload);
-      console.log("Response:", res.data);
 
-    // Try to extract the bot reply from the API response
-    let botReply = "";
-    // Prefer the last message if it has a text part
-    const last = res.data[res.data.length - 1];
-    if (
-      last &&
-      last.content &&
-      Array.isArray(last.content.parts) &&
-      last.content.parts[0] &&
-      typeof last.content.parts[0].text === "string"
-    ) {
-      botReply = last.content.parts[0].text;
-    } else {
-      // Fallback: try to extract from functionResponse.result
-      const funcResp =
-        res.data.find(
-        (item) =>
-          item.content &&
-          Array.isArray(item.content.parts) &&
-          item.content.parts[0] &&
-          item.content.parts[0].functionResponse
-        );
-      if (
-        funcResp &&
-        funcResp.content.parts[0].functionResponse.response &&
-        funcResp.content.parts[0].functionResponse.response.result
-      ) {
-        botReply = funcResp.content.parts[0].functionResponse.response.result;
+      let botReply = "";
+      const last = res.data[res.data.length - 1];
+      if (last?.content?.parts?.[0]?.text) {
+        botReply = last.content.parts[0].text;
       } else {
-        botReply = "Sorry, I couldn't understand the response.";
+        const funcResp = res.data.find(
+          (item) => item.content?.parts?.[0]?.functionResponse?.response?.result
+        );
+        botReply =
+          funcResp?.content?.parts?.[0]?.functionResponse?.response?.result ||
+          "Sorry, I couldn't understand the response.";
       }
-    }
+
       setMessages((prev) => [...prev, { sender: "bot", text: botReply }]);
     } catch (err) {
       console.error("Error:", err);
@@ -112,50 +87,72 @@ const ChatWidget = () => {
 
   return (
     <div>
-      {/* Floating Bubble Button */}
-      <div
-        onClick={toggleChat}
-        className="fixed bottom-6 right-6 bg-blue-600 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg cursor-pointer z-50"
-        title="Chat"
-      >
-        💬
+      {/* Floating Chat Button with Popover */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        {showPopover && !isOpen && (
+          <div className="mb-2 bg-white text-gray-800 px-4 py-2 rounded-lg shadow-lg animate-fade-in-down text-sm">
+            Need help with iPortal?
+          </div>
+        )}
+        <div
+          onClick={toggleChat}
+          className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-full w-16 h-16 flex items-center justify-center shadow-xl hover:scale-105 transform transition duration-300 animate-pulse cursor-pointer"
+          title="Chat with Assistant"
+        >
+          💬
+        </div>
       </div>
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-20 right-6 w-80 h-96 bg-white shadow-lg rounded-lg flex flex-col overflow-hidden z-50 border border-gray-300">
-          <div className="bg-blue-600 text-white px-4 py-2 font-bold">
-            Thesis Chat
+        <div className="fixed bottom-24 right-6 w-96 max-h-[80vh] bg-white shadow-2xl rounded-2xl flex flex-col overflow-hidden z-50 border border-gray-300">
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-5 py-3 font-semibold text-lg flex items-center justify-between">
+            iPortal Support Assistant
+            <button
+              onClick={toggleChat}
+              className="text-white text-xl leading-none font-bold"
+              title="Close"
+            >
+              ×
+            </button>
           </div>
-          <div className="flex-1 p-3 overflow-y-auto space-y-2 text-sm">
+
+          <div className="px-4 py-3 bg-gray-100 text-sm text-gray-600 italic">
+            👋 Hello! How can I assist you with iPortal today?
+          </div>
+
+          <div className="flex-1 px-4 py-2 overflow-y-auto space-y-3 text-sm bg-white">
             {messages.map((msg, idx) => (
               <div
                 key={idx}
-                className={`px-3 py-2 rounded-lg ${
+                className={`max-w-[75%] px-4 py-2 rounded-xl shadow-sm ${
                   msg.sender === "user"
-                    ? "bg-blue-500 text-white self-end ml-auto max-w-[75%]"
-                    : "bg-gray-200 text-black self-start max-w-[75%]"
+                    ? "ml-auto bg-blue-500 text-white"
+                    : "bg-gray-200 text-gray-900"
                 }`}
               >
                 {msg.text}
               </div>
             ))}
             {loading && (
-              <div className="text-gray-400 italic">Agent is typing...</div>
+              <div className="text-gray-400 italic animate-pulse">
+                Agent is typing...
+              </div>
             )}
             <div ref={chatRef} />
           </div>
-          <div className="flex border-t p-2">
+
+          <div className="flex border-t p-3 bg-gray-50">
             <input
-              className="flex-1 px-3 py-1 border rounded-lg text-sm mr-2"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
               value={query}
-              placeholder="Type your question..."
+              placeholder="What help do you need regarding iPortal?"
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
             />
             <button
               onClick={sendMessage}
-              className="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm"
+              className="ml-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm transition duration-300"
             >
               Send
             </button>
